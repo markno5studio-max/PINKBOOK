@@ -44,11 +44,16 @@
         <button @click="openApply" class="w-64 bg-pink-500 text-white py-3 rounded-2xl font-bold shadow-md flex items-center justify-center gap-2 mb-3">
             <span class="material-icons text-base">person_add</span> 申請使用
         </button>
+        <button @click="openRegister" class="w-64 bg-pink-100 text-pink-600 py-3 rounded-2xl font-bold shadow-sm flex items-center justify-center gap-2 mb-3">
+            <span class="material-icons text-base">vpn_key</span> 我有邀請碼，立即註冊
+        </button>
         <button @click="showLoginModal = true" class="w-64 bg-white/70 py-3 rounded-2xl font-medium shadow-sm flex items-center justify-center gap-2">
             <span class="material-icons text-base">login</span> 我已有帳號，登入
         </button>
         <p class="text-[11px] text-gray-400 mt-6 px-8 leading-relaxed">
-            申請後請等待管理員核發「邀請碼」，<br>收到邀請碼後登入並輸入即可開始使用。
+            ① 先填寫「申請使用」送出資料<br>
+            ② 等管理員核發邀請碼<br>
+            ③ 點「我有邀請碼」完成註冊並登入
         </p>
     </div>
 </template>
@@ -317,15 +322,14 @@
         </div>
     </div>
 
-    <!-- ════════ 燈箱：申請使用（填寫個人資料）════════ -->
+    <!-- ════════ 燈箱：申請使用（填寫個人資料，不建帳號）════════ -->
     <div v-if="showApplyModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
         <div class="bg-white p-6 rounded-2xl max-w-sm w-full shadow-lg">
             <h2 class="text-lg font-bold mb-1 flex items-center gap-1"><span class="material-icons">person_add</span> 申請使用</h2>
-            <p class="text-[11px] text-gray-500 mb-4">送出後請等待管理員核發邀請碼，再回來登入並輸入邀請碼啟用。</p>
+            <p class="text-[11px] text-gray-500 mb-4">送出申請後，管理員會核發邀請碼給你。<br>收到邀請碼後，點「我有邀請碼」完成註冊。</p>
             <div class="space-y-3 text-sm">
                 <input v-model="applyForm.username" placeholder="帳號 / 暱稱" class="w-full p-2.5 border rounded-lg">
-                <input v-model="applyForm.email" type="email" placeholder="信箱" class="w-full p-2.5 border rounded-lg">
-                <input v-model="applyForm.password" type="password" placeholder="密碼（至少 6 碼）" class="w-full p-2.5 border rounded-lg">
+                <input v-model="applyForm.email" type="email" placeholder="信箱（管理員將寄邀請碼到此）" class="w-full p-2.5 border rounded-lg">
                 <div>
                     <label class="text-xs text-gray-500">生日</label>
                     <input v-model="applyForm.birthday" type="date" class="w-full p-2.5 border rounded-lg">
@@ -335,6 +339,28 @@
                     <button @click="showApplyModal = false" class="w-1/2 border py-2 rounded-lg">取消</button>
                     <button @click="submitApply" :disabled="applying" class="w-1/2 bg-pink-500 text-white py-2 rounded-lg font-bold disabled:opacity-50">
                         {{ applying ? '送出中…' : '送出申請' }}
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ════════ 燈箱：用邀請碼註冊（建立 Auth 帳號）════════ -->
+    <div v-if="showRegisterModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div class="bg-white p-6 rounded-2xl max-w-sm w-full shadow-lg">
+            <h2 class="text-lg font-bold mb-1 flex items-center gap-1"><span class="material-icons">vpn_key</span> 用邀請碼註冊</h2>
+            <p class="text-[11px] text-gray-500 mb-4">填入管理員給你的邀請碼，設定帳號密碼後即可使用。</p>
+            <div class="space-y-3 text-sm">
+                <input v-model="registerForm.email" type="email" placeholder="信箱（需與申請時一致）" class="w-full p-2.5 border rounded-lg">
+                <input v-model="registerForm.inviteCode" placeholder="邀請碼（例如：PINK888）" class="w-full p-2.5 border rounded-lg font-mono uppercase tracking-widest">
+                <input v-model="registerForm.password" type="password" placeholder="設定密碼（至少 6 碼）" class="w-full p-2.5 border rounded-lg">
+                <input v-model="registerForm.username" placeholder="帳號 / 暱稱" class="w-full p-2.5 border rounded-lg">
+                <p v-if="registerError" class="text-xs text-red-500 font-medium">{{ registerError }}</p>
+                <p v-if="registerOkMsg" class="text-xs text-green-600 font-medium">{{ registerOkMsg }}</p>
+                <div class="flex gap-2 pt-1">
+                    <button @click="showRegisterModal = false" class="w-1/2 border py-2 rounded-lg">取消</button>
+                    <button @click="submitRegister" :disabled="registering" class="w-1/2 bg-pink-500 text-white py-2 rounded-lg font-bold disabled:opacity-50">
+                        {{ registering ? '處理中…' : '完成註冊' }}
                     </button>
                 </div>
             </div>
@@ -538,7 +564,7 @@ createApp({
             profile: null,
             // 申請 / 邀請
             showApplyModal: false, applying: false, applyError: '',
-            applyForm: { username: '', email: '', password: '', birthday: '' },
+            applyForm: { username: '', email: '', birthday: '' },
             inviteInput: '', inviteError: '',
             // 帳本 / 資料
             books: [],
@@ -561,6 +587,9 @@ createApp({
             // 登入
             showLoginModal: false, loginEmail: '', loginPass: '', loginError: '',
             showAdminPanel: false, newPass: '',
+            // 邀請碼註冊
+            showRegisterModal: false, registering: false, registerError: '', registerOkMsg: '',
+            registerForm: { email: '', inviteCode: '', password: '', username: '' },
             // 分享
             showShareModal: false, shareEmail: '', shareMsg: '', shareOk: false, myShares: [],
             // 管理後台
@@ -877,29 +906,76 @@ createApp({
             this.profile = prof;
         },
         openApply() {
-            this.applyForm = { username: '', email: '', password: '', birthday: '' };
+            this.applyForm = { username: '', email: '', birthday: '' };
             this.applyError = '';
             this.showApplyModal = true;
         },
         async submitApply() {
             this.applyError = '';
             const f = this.applyForm;
-            if (!f.username || !f.email || !f.password) return this.applyError = '請填寫帳號、信箱與密碼';
-            if (f.password.length < 6) return this.applyError = '密碼至少 6 碼';
+            if (!f.username || !f.email) return this.applyError = '請填寫帳號與信箱';
             this.applying = true;
-            // 1) 建立 Auth 帳號（把暱稱 / 生日存進 metadata）
-            const { error: signErr } = await sb.auth.signUp({
-                email: f.email, password: f.password,
-                options: { data: { username: f.username, birthday: f.birthday || null } },
-            });
-            if (signErr) { this.applying = false; return this.applyError = '申請失敗：' + signErr.message; }
-            // 2) 寫入申請紀錄（公開可 insert）
-            await sb.from('user_applications').insert([{
+            // 只寫入申請紀錄，不建立 Auth 帳號（避免觸發 Confirm email）
+            const { error } = await sb.from('user_applications').insert([{
                 username: f.username, email: f.email, birthday: f.birthday || null, status: 'pending',
-            }]).then(() => {}, () => {});
+            }]);
             this.applying = false;
+            if (error) return this.applyError = '申請失敗：' + (error.code === '23505' ? '此信箱已送過申請' : error.message);
             this.showApplyModal = false;
-            alert('✅ 申請已送出！\n請等待管理員核發邀請碼，收到後再登入並輸入即可啟用。');
+            alert('✅ 申請已送出！\n請等管理員審核並核發邀請碼。\n收到邀請碼後，點首頁「我有邀請碼，立即註冊」完成帳號設定。');
+        },
+        openRegister() {
+            this.registerForm = { email: '', inviteCode: '', password: '', username: '' };
+            this.registerError = ''; this.registerOkMsg = '';
+            this.showRegisterModal = true;
+        },
+        async submitRegister() {
+            this.registerError = ''; this.registerOkMsg = '';
+            const f = this.registerForm;
+            if (!f.email || !f.inviteCode || !f.password) return this.registerError = '請填寫所有欄位';
+            if (f.password.length < 6) return this.registerError = '密碼至少 6 碼';
+            this.registering = true;
+
+            // 1) 先驗證邀請碼是否有效且對應此信箱（不需登入，RLS select using true）
+            const { data: codes } = await sb.from('invite_codes').select('*')
+                .eq('code', f.inviteCode.trim().toUpperCase()).eq('is_used', false);
+            const match = (codes || []).find(c => (c.email || '').toLowerCase() === f.email.trim().toLowerCase());
+            if (!match) {
+                this.registering = false;
+                return this.registerError = '邀請碼無效、已被使用，或與信箱不符';
+            }
+
+            // 2) 邀請碼正確 → 建立 Auth 帳號（此時才呼叫 signUp，Supabase 可能寄驗證信）
+            const username = f.username.trim() || f.email.split('@')[0];
+            const { data: signData, error: signErr } = await sb.auth.signUp({
+                email: f.email.trim(), password: f.password,
+                options: { data: { username, invite_code: f.inviteCode.trim().toUpperCase() } },
+            });
+            if (signErr) {
+                this.registering = false;
+                return this.registerError = '註冊失敗：' + signErr.message;
+            }
+
+            // 3) 標記邀請碼已使用（用 uid 或先用 email 暫記，等確認信點擊後 uid 才確定）
+            const uid = signData?.user?.id;
+            await sb.from('invite_codes').update({ is_used: true, used_by: uid || null }).eq('id', match.id);
+            await sb.from('user_applications').update({ status: 'activated' }).eq('email', f.email.trim()).then(() => {}, () => {});
+
+            // 4) 若信箱確認功能關閉，session 會立刻存在，直接啟用 profile
+            if (signData?.session) {
+                await sb.from('profiles').upsert({
+                    id: uid, email: f.email.trim(), username, role: 'user', status: 'active',
+                }, { onConflict: 'id' });
+            }
+
+            this.registering = false;
+            this.showRegisterModal = false;
+
+            if (signData?.session) {
+                alert('✅ 註冊成功！歡迎使用小桃記帳。');
+            } else {
+                alert('✅ 帳號已建立！\n請到信箱點擊 Supabase 寄來的確認信，完成後即可登入使用。');
+            }
         },
         async redeemInvite() {
             this.inviteError = '';
